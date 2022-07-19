@@ -1,0 +1,28 @@
+{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+
+package:
+    name: {{ data.get('name') }}
+    version: {{ data.get('version') }}
+
+build:
+    number: 0
+    skip: True  # [not linux64]
+    string: py3
+    script:
+        - {{ PYTHON }} -m pip install -vv .
+
+source:
+    path: ..
+
+requirements:
+    host:
+        - python
+        - pip
+        - cython
+    run:
+        - python
+        - pip
+        - cython
+about:
+    home: https://github.com/yodeng/ccbuild
+    license: MIT
