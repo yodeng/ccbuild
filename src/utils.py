@@ -2,6 +2,7 @@
 # coding:utf-8
 
 import os
+import re
 import sys
 import time
 import shutil
@@ -73,30 +74,24 @@ def tempdir(*args, **kwargs):
             pass
 
 
-def call(cmd, run=True, verbose=False, shell=True, msg="", c=False):
+def call(cmd, out=False, shell=True, msg="", c=False, tmdir=None):
     log = mp.get_logger()
-    if not run:
-        if verbose:
-            print(cmd)
-        return
-    if verbose:
-        try:
-            subprocess.check_call(cmd, shell=shell, stdout=sys.stdout,
-                                  stderr=sys.stderr)
-        except Exception as err:
-            if msg:
-                log.error("compile error %s" % msg)
-            if not c:
-                raise WorkerStopException()
-    else:
+    if not out:
         with open(os.devnull, "w") as fo:
-            try:
-                subprocess.check_call(cmd, shell=shell, stdout=fo, stderr=fo)
-            except Exception as err:
-                if msg:
-                    log.error("compile error %s" % msg)
-                if not c:
-                    raise WorkerStopException()
+            subprocess.check_call(cmd, shell=shell, stdout=fo, stderr=fo)
+        return
+    try:
+        out = subprocess.check_output(cmd, shell=shell, stderr=subprocess.PIPE)
+    except Exception as err:
+        if msg:
+            log.error("compile error %s" % msg)
+        if not c:
+            if tmdir and os.path.isfile(tmdir):
+                shutil.rmtree(tmdir)
+            raise WorkerStopException()
+        return
+    dotso = re.findall(" \-o (.+\.so)\n", out.decode())
+    return dotso[0]
 
 
 def check_cython(python_exe):
