@@ -33,7 +33,9 @@ class CompileProject(object):
         self.efile = [] if exclude_file is None else exclude_file
         self.interpreter = interpreter
         self.cc = c
-        self.tmdir = []
+        mg = mp.Manager()
+        self.lock = mg.Lock()
+        self.tmdir = mg.list()
 
     def list_compile_files(self):
         for p, ds, fs in os.walk(self.cdir):
@@ -52,7 +54,8 @@ class CompileProject(object):
     def compile(self, pyf, remove=True):
         self.logger.info("start compile %s file", pyf)
         with tempdir() as td:
-            self.tmdir.append(td)
+            with self.lock:
+                self.tmdir.append(td)
             tf = os.path.join(td, "ccbuild.py")
             self.write_setup(tf)
             cmd = [self.interpreter, tf, pyf]
