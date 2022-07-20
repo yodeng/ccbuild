@@ -1,4 +1,8 @@
-## ccbuild
+
+
+## ccbuild  
+
+[![PyPI version](https://img.shields.io/pypi/v/ccbuild.svg?logo=pypi&logoColor=FFE873)](https://pypi.python.org/pypi/ccbuild)
 
 `ccbuild`将`python`开发的项目、流程或脚本文件进行编译成`C`的动态共享库`*.so`文件，不影响项目运行，可用于某些场景下`python`源码保护。
 
@@ -14,8 +18,16 @@
 
 #### 安装
 
+> git repo
+
 ```
 pip install git+https://github.com/yodeng/ccbuild.git
+```
+
+> Pypi
+
+```
+pip install ccbuild
 ```
 
 
