@@ -92,11 +92,28 @@ class CompileProject(object):
                 if os.path.isdir(d):
                     shutil.rmtree(d)
             mg.shutdown()
+            self.clean_source()
             clean_process()
         return
 
     def clean_source(self):
-        pass
+        for p, ds, fs in os.walk(self.cdir):
+            for d in ds:
+                if d == "__pycache__":
+                    shutil.rmtree(os.path.join(p, d))
+            for f in fs:
+                f = os.path.join(p, f)
+                if f.endswith(".pyc") and os.path.isfile(f):
+                    os.remove(f)
+                elif f.endswith(".so"):
+                    if os.path.isfile(f[:-3] + ".py"):
+                        os.remove(f[:-3] + ".py")
+                elif f.endswith(".py"):
+                    if os.path.isfile(f[:-3] + ".so") and os.path.isfile(f):
+                        os.remove(f)
+                elif f.endswith(".c"):
+                    if os.path.isfile(f[:-2] + ".py") and os.path.isfile(f):
+                        os.remove(f)
 
     def write_setup(self, outfile):
         with open(outfile, "w") as fo:
