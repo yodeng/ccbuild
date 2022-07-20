@@ -7,7 +7,7 @@ package:
 build:
     number: 0
     skip: True  # [not linux64]
-    string: py3
+    string: py27
     script:
         - {{ PYTHON }} -m pip install -vv .
 

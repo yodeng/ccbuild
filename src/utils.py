@@ -29,16 +29,11 @@ elif PY.major == 3:
     from copyreg import pickle
 
 
-def clean_process(tmpdir=[]):
-    for tdir in tmpdir:
-        if os.path.isdir(tdir):
-            shutil.rmtree(tdir)
-    try:
-        for tdir in tmpdir._address_to_local:
-            if os.path.isdir(os.path.dirname(tdir)):
-                shutil.rmtree(os.path.dirname(tdir))
-    except:
-        pass
+class WorkerStopException(Exception):
+    pass
+
+
+def clean_process():
     p = os.getpid()
     g = os.getpgid(p)
     os.killpg(g, 15)
@@ -78,7 +73,7 @@ def tempdir(*args, **kwargs):
             pass
 
 
-def call(cmd, run=True, verbose=False, shell=True, msg="", c=False, tmpdir=[]):
+def call(cmd, run=True, verbose=False, shell=True, msg="", c=False):
     log = mp.get_logger()
     if not run:
         if verbose:
@@ -92,7 +87,7 @@ def call(cmd, run=True, verbose=False, shell=True, msg="", c=False, tmpdir=[]):
             if msg:
                 log.error("compile error %s" % msg)
             if not c:
-                clean_process(tmpdir)
+                raise WorkerStopException()
     else:
         with open(os.devnull, "w") as fo:
             try:
@@ -101,7 +96,7 @@ def call(cmd, run=True, verbose=False, shell=True, msg="", c=False, tmpdir=[]):
                 if msg:
                     log.error("compile error %s" % msg)
                 if not c:
-                    clean_process(tmpdir)
+                    raise WorkerStopException()
 
 
 def check_cython(python_exe):

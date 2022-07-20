@@ -33,9 +33,6 @@ class CompileProject(object):
         self.efile = [] if exclude_file is None else exclude_file
         self.interpreter = interpreter
         self.cc = c
-        mg = mp.Manager()
-        self.lock = mg.Lock()
-        self.tmdir = mg.list()
 
     def list_compile_files(self):
         for p, ds, fs in os.walk(self.cdir):
@@ -59,8 +56,7 @@ class CompileProject(object):
             tf = os.path.join(td, "ccbuild.py")
             self.write_setup(tf)
             cmd = [self.interpreter, tf, pyf]
-            call(cmd, shell=False, msg=pyf, c=self.cc,
-                 tmpdir=self.tmdir)
+            call(cmd, shell=False, msg=pyf, c=self.cc)
         outfile = glob.glob(os.path.splitext(
             pyf)[0] + ".cpython*.so") or glob.glob(os.path.splitext(pyf)[0] + ".so")
         if len(outfile) == 0:
@@ -84,8 +80,19 @@ class CompileProject(object):
         return self.compile(pyfile, remove=True)
 
     def compile_all(self, remove=True):
+        mg = mp.Manager()
+        self.lock = mg.Lock()
+        self.tmdir = mg.list()
         p = mp.Pool(self.threads)
-        p.map(self, self.compile_file)
+        try:
+            p.map(self, self.compile_file)
+        except WorkerStopException:
+            p.close()
+            for d in self.tmdir:
+                if os.path.isdir(d):
+                    shutil.rmtree(d)
+            mg.shutdown()
+            clean_process()
         return
 
     def clean_source(self):
