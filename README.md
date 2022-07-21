@@ -18,7 +18,7 @@
 
 #### 安装
 
-> git repo
+> git repo with the development version
 
 ```
 pip install git+https://github.com/yodeng/ccbuild.git

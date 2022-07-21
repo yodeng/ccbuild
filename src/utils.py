@@ -86,12 +86,30 @@ def call(cmd, out=False, shell=True, msg="", c=False, tmdir=None):
         if msg:
             log.error("compile error %s" % msg)
         if not c:
-            if tmdir and os.path.isfile(tmdir):
+            if tmdir and os.path.isdir(tmdir):
                 shutil.rmtree(tmdir)
             raise WorkerStopException()
         return
     dotso = re.findall(" \-o (.+\.so)\n", out.decode())
     return dotso[0]
+
+
+def mkdir(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
+def copy(src, dst):
+    mkdir(dst)
+    if os.path.isfile(src):
+        shutil.copyfile(src, os.path.join(dst, os.path.basename(src)))
+        return
+    for p in os.listdir(src):
+        path = os.path.join(src, p)
+        if os.path.isfile(path):
+            shutil.copyfile(path, os.path.join(dst, p))
+        elif os.path.isdir(path):
+            shutil.copytree(path, os.path.join(dst, p))
 
 
 def check_cython(python_exe):
