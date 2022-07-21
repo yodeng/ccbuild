@@ -16,8 +16,11 @@ def main():
     cp.list_compile_files()
     log.info("detect %s files for compile, Interpreter: %s",
              len(cp.compile_file), args.python)
-    cp.compile_all()
-    cp.clean_source()
+    if len(cp.compile_file) > 0:
+        cp.compile_all()
+        cp.clean_source()
+    else:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
