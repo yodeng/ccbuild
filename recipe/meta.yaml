@@ -7,7 +7,7 @@ package:
 build:
     number: 0
     skip: True  # [not linux64]
-    string: py27
+    string: py
     script:
         - {{ PYTHON }} -m pip install -vv .
 
@@ -16,11 +16,11 @@ source:
 
 requirements:
     host:
-        - python <3
+        - python >=2.7,<3.11
         - pip
         - cython
     run:
-        - python <3
+        - python >=2.7,<3.11
         - pip
         - cython
 about:

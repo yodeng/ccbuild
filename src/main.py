@@ -18,7 +18,6 @@ def main():
              len(cp.compile_file), args.python)
     if len(cp.compile_file) > 0:
         cp.compile_all()
-        cp.clean_source()
     else:
         sys.exit(1)
 
