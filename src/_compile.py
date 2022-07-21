@@ -35,7 +35,7 @@ class CompileProject(object):
         elif os.path.isdir(self.pdir):
             mkdir(self.cdir)
             cpcmd = "cp -r %s/* %s" % (self.pdir, self.cdir)
-            call(cpcmd)
+            self.call(cpcmd)
         for p, ds, fs in os.walk(self.cdir):
             dn = os.path.basename(p)
             for dp in self.edir:
@@ -53,19 +53,19 @@ class CompileProject(object):
         self.logger.info("start compile %s file", pyf)
         fin = False
         with tempdir() as td:
-            with self.lock:
-                self.tmdir.append(td)
-            tf = os.path.join(td, "ccbuild.py")
+            tf = os.path.join(td, "ccbuild_%s" % getGID())
             self.write_setup(tf)
             cmd = [self.interpreter, tf, pyf]
-            _so = call(cmd, out=True, shell=False,
-                       msg=pyf, c=self.cc, tmdir=td)
+            _so = self.call(cmd, out=True, shell=False,
+                            msg=pyf, c=self.cc, tmdir=td)
             if _so:
                 new_file_name = pyf[:-3] + ".so"
                 shutil.move(_so, new_file_name)
                 if os.path.isfile(new_file_name):
                     os.remove(pyf)
                 fin = True
+        if os.path.isfile(pyf[:-3]+".c"):
+            os.remove(pyf[:-3]+".c")
         if fin:
             self.logger.info("finished %s", pyf)
 
@@ -75,21 +75,40 @@ class CompileProject(object):
     def compile_all(self):
         if len(self.compile_file) == 0:
             self.list_compile_files()
-        mg = mp.Manager()
-        self.lock = mg.Lock()
-        self.tmdir = mg.list()
         p = mp.Pool(self.threads)
+        p.map(self, self.compile_file)
+        self.clean_tmp()
+        self.clean_source()
+
+    def call(self, cmd, out=False, shell=True, msg="", c=False, tmdir=None):
+        if not out:
+            with open(os.devnull, "w") as fo:
+                subprocess.check_call(cmd, shell=shell, stdout=fo, stderr=fo)
+            return
         try:
-            p.map(self, self.compile_file)
-        except WorkerStopException:
-            p.close()
-            for d in self.tmdir:
-                if os.path.isdir(d):
-                    shutil.rmtree(d)
-            mg.shutdown()
-            self.clean_source()
-            clean_process()
-        return
+            out = subprocess.check_output(
+                cmd, shell=shell, stderr=subprocess.PIPE)
+        except Exception:
+            if tmdir and os.path.isdir(tmdir):
+                shutil.rmtree(tmdir)
+            if msg:
+                self.logger.error("compile error %s" % msg)
+            if not c:
+                self.safe_exit_when_error()
+            return
+        dotso = re.findall(" \-o (.+\.so)\n", out.decode())
+        return dotso[0]
+
+    def safe_exit_when_error(self):
+        self.clean_tmp()
+        self.clean_source()
+        clean_process()
+
+    @staticmethod
+    def clean_tmp():
+        for c in glob.glob("/tmp/*/ccbuild_%s" % getGID()):
+            if os.path.isdir(os.path.dirname(c)):
+                shutil.rmtree(os.path.dirname(c))
 
     def clean_source(self):
         for p, ds, fs in os.walk(self.cdir):

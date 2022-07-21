@@ -34,10 +34,13 @@ class WorkerStopException(Exception):
     pass
 
 
-def clean_process():
+def getGID():
     p = os.getpid()
-    g = os.getpgid(p)
-    os.killpg(g, 15)
+    return os.getpgid(p)
+
+
+def clean_process(ret_code=15):
+    os.killpg(getGID(), ret_code)
 
 
 def pickle_method(method):
@@ -72,26 +75,6 @@ def tempdir(*args, **kwargs):
             shutil.rmtree(tmpdir)
         except:
             pass
-
-
-def call(cmd, out=False, shell=True, msg="", c=False, tmdir=None):
-    log = mp.get_logger()
-    if not out:
-        with open(os.devnull, "w") as fo:
-            subprocess.check_call(cmd, shell=shell, stdout=fo, stderr=fo)
-        return
-    try:
-        out = subprocess.check_output(cmd, shell=shell, stderr=subprocess.PIPE)
-    except Exception as err:
-        if msg:
-            log.error("compile error %s" % msg)
-        if not c:
-            if tmdir and os.path.isdir(tmdir):
-                shutil.rmtree(tmdir)
-            raise WorkerStopException()
-        return
-    dotso = re.findall(" \-o (.+\.so)\n", out.decode())
-    return dotso[0]
 
 
 def mkdir(path):
