@@ -139,7 +139,7 @@ def format_exclude(input_exc=None):
 
 def Argparse():
     parser = argparse.ArgumentParser(
-        description="For compile *.py projects to *.so")
+        description="Compile *.py projects to *.so for python source code protection.")
     parser.add_argument("-p", "--python", type=str,
                         help="python interpreter path to run you project after compile, %s by default" % sys.executable, default=sys.executable, metavar="<file>")
     parser.add_argument("-i", "--input", type=str,
@@ -154,6 +154,8 @@ def Argparse():
                         nargs="*", metavar="<dir>")
     parser.add_argument("--exclude-file", type=str, help="skipped files(basename only), simple regular expression allowed('./?/*'), multi input can be separated by whitespace",
                         nargs="*", metavar="<file>")
+    parser.add_argument('-d', '--debug', action='store_true', default=False,
+                        help="debug level, if set, more information will be output when compile error")
     parser.add_argument('-v', '--version',
                         action='version', version="v" + __version__)
     args = parser.parse_args()

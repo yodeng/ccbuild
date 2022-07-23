@@ -1,5 +1,3 @@
-
-
 ## ccbuild  
 
 [![PyPI version](https://img.shields.io/pypi/v/ccbuild.svg?logo=pypi&logoColor=FFE873)](https://pypi.python.org/pypi/ccbuild)
@@ -50,6 +48,7 @@ $ ccbuild -h
 | -c/--compile-continue | 若某个文件编译失败，是否跳过，继续编译，默认编译失败退出程序 |
 | --exclude-dir         | 跳过的编译目录，默认"\_\_pycache\_\_"会被跳过, 多个输入空白隔开，支持简单shell匹配 |
 | --exclude-file        | 跳过的编译文件，默认"\_\_init\_\_.py"会被跳过，多个输入空白隔开，支持简单shell匹配 |
+| -d/--debug            | debug模式，此模式下，编译错误时，会打印编译错误的原因，用于错误排查 |
 | -v/--version          | 打印版本并退出                                               |
 
 + `-p/--python`指定的解释器为编译后运行项目的解释器，相同版本的解释器可以通用
@@ -60,4 +59,4 @@ $ ccbuild -h
 
 + 编译后的输出目录，使用方式不变，只是项目中的`py`文件变成了`so`二进制文件。
 
-+ 有可能存在编译失败的情况，原因是由于`python`代码中有`cython`识别不了的未导入的模块，`cython`和`python`并不是百分百兼容，需要调整`python`代码即可通过编译。
++ 有可能存在编译失败的情况，原因通常是由于`python`代码中有无效代码块，其中使用了未定义的变量或模块，`cython`会当做错误，`cython`和`python`并不是百分百兼容，可通过debug模式查看和解决错误。

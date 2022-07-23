@@ -8,6 +8,8 @@ from ._compile import *
 def main():
     args = Argparse()
     log = Mylog(multi=True)
+    if args.debug:
+        log.setLevel(10)
     if not check_cython(args.python):
         log.error("No module named cython for %s", args.python)
         sys.exit(1)
