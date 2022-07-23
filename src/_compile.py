@@ -24,8 +24,8 @@ class CompileProject(object):
         self.cdir = os.path.abspath(compile_dir)
         self.threads = threads
         self.compile_file = []
-        self.edir = [] if exclude_dir is None else exclude_dir
-        self.efile = [] if exclude_file is None else exclude_file
+        self.edir = exclude_dir or []
+        self.efile = exclude_file or []
         self.interpreter = interpreter
         self.cc = c
 
@@ -86,9 +86,13 @@ class CompileProject(object):
                 subprocess.check_call(cmd, shell=shell, stdout=fo, stderr=fo)
             return
         try:
-            out = subprocess.check_output(
-                cmd, shell=shell, stderr=subprocess.PIPE)
+            p = subprocess.Popen(
+                cmd, shell=shell, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            out, e = p.communicate()
+            if p.returncode != 0:
+                raise RuntimeError()
         except Exception:
+            self.logger.debug(e.decode())
             if tmdir and os.path.isdir(tmdir):
                 shutil.rmtree(tmdir)
             if msg:
