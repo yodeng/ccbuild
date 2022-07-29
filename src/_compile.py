@@ -110,7 +110,8 @@ class CompileProject(object):
 
     @staticmethod
     def clean_tmp():
-        for c in glob.glob("/tmp/*/ccbuild_%s" % getGID()):
+        td = os.path.join(tempfile.gettempdir(), "*", "ccbuild_%s" % getGID())
+        for c in glob.glob(td):
             if os.path.isdir(os.path.dirname(c)):
                 shutil.rmtree(os.path.dirname(c))
 
