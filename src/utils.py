@@ -82,10 +82,11 @@ def mkdir(path):
         os.makedirs(path)
 
 
-def copy(src, dst):
+def copy_to_dir(src, dst):
     mkdir(dst)
     if os.path.isfile(src):
-        shutil.copyfile(src, os.path.join(dst, os.path.basename(src)))
+        if os.path.abspath(dst) != os.path.abspath(os.path.dirname(src)):
+            shutil.copyfile(src, os.path.join(dst, os.path.basename(src)))
         return
     for p in os.listdir(src):
         path = os.path.join(src, p)

@@ -28,14 +28,22 @@ class CompileProject(object):
         self.efile = exclude_file or []
         self.interpreter = interpreter
         self.cc = c
+        self.remove_src = self.pdir != self.cdir
 
     def list_compile_files(self):
         if os.path.isfile(self.pdir):
-            copy(self.pdir, self.cdir)
+            if self.pdir.endswith(self.py_ext):
+                copy_to_dir(self.pdir, self.cdir)
+                py = os.path.join(self.cdir, os.path.basename(self.pdir))
+                self.compile_file.append(py)
+                if py == self.pdir:
+                    self.remove_src = False
+            return
         elif os.path.isdir(self.pdir):
             mkdir(self.cdir)
-            cpcmd = "cp -r %s/* %s" % (self.pdir, self.cdir)
-            self.call(cpcmd)
+            if os.path.abspath(self.pdir) != os.path.abspath(self.cdir):
+                cpcmd = "cp -r %s/* %s" % (self.pdir, self.cdir)
+                self.call(cpcmd)
         for p, ds, fs in os.walk(self.cdir):
             dn = os.path.basename(p)
             for dp in self.edir:
@@ -62,10 +70,9 @@ class CompileProject(object):
                 new_file_name = pyf[:-3] + ".so"
                 shutil.move(_so, new_file_name)
                 if os.path.isfile(new_file_name):
-                    os.remove(pyf)
+                    self.remove_file(pyf)
                 fin = True
-        if os.path.isfile(pyf[:-3]+".c"):
-            os.remove(pyf[:-3]+".c")
+        self.remove_file(pyf[:-3]+".c")
         if fin:
             self.logger.info("finished %s", pyf)
 
@@ -75,8 +82,12 @@ class CompileProject(object):
     def compile_all(self):
         if len(self.compile_file) == 0:
             self.list_compile_files()
-        p = mp.Pool(self.threads)
-        p.map(self, self.compile_file)
+        nproc = min(self.threads, len(self.compile_file))
+        if nproc > 1:
+            p = mp.Pool()
+            p.map(self, self.compile_file)
+        else:
+            self.compile(self.compile_file[0])
         self.clean_tmp()
         self.clean_source()
 
@@ -98,12 +109,12 @@ class CompileProject(object):
             if msg:
                 self.logger.error("compile error %s" % msg)
             if not c:
-                self.safe_exit_when_error()
+                self.safe_exit()
             return
         dotso = re.findall(" \-o (.+\.so)\n", out.decode())
         return dotso[0]
 
-    def safe_exit_when_error(self):
+    def safe_exit(self):
         self.clean_tmp()
         self.clean_source()
         clean_process()
@@ -122,17 +133,21 @@ class CompileProject(object):
                     shutil.rmtree(os.path.join(p, d))
             for f in fs:
                 f = os.path.join(p, f)
-                if f.endswith(".pyc") and os.path.isfile(f):
-                    os.remove(f)
+                if f.endswith(".pyc"):
+                    self.remove_file(f)
                 elif f.endswith(".so"):
-                    if os.path.isfile(f[:-3] + ".py"):
-                        os.remove(f[:-3] + ".py")
+                    self.remove_file(f[:-3] + ".py")
                 elif f.endswith(".py"):
-                    if os.path.isfile(f[:-3] + ".so") and os.path.isfile(f):
-                        os.remove(f)
+                    if os.path.isfile(f[:-3] + ".so"):
+                        self.remove_file(f)
                 elif f.endswith(".c"):
-                    if os.path.isfile(f) and (os.path.isfile(f[:-2]+".py") or os.path.isfile(f[:-2]+".so")):
-                        os.remove(f)
+                    if os.path.isfile(f[:-2]+".py") or os.path.isfile(f[:-2]+".so"):
+                        self.remove_file(f)
+
+    def remove_file(self, path):
+        if os.path.isfile(path):
+            if not path.endswith(".py") or self.remove_src:
+                os.remove(path)
 
     def write_setup(self, outfile):
         with open(outfile, "w") as fo:
