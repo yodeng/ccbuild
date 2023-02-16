@@ -7,8 +7,6 @@ import shutil
 import logging
 import fnmatch
 
-import multiprocessing as mp
-
 from .utils import *
 
 
@@ -55,17 +53,18 @@ class CompileProject(object):
                         fs.remove(fn)
                 for f in fs:
                     if f.endswith(self.py_ext):
-                        self.compile_file.append(os.path.join(p, f))
+                        if os.path.isfile(os.path.join(p, f).replace(self.cdir, self.pdir)):
+                            self.compile_file.append(os.path.join(p, f))
 
     def compile(self, pyf):
         self.logger.info("start compile %s file", pyf)
         fin = False
-        with tempdir() as td:
-            tf = os.path.join(td, "ccbuild_%s" % getGID())
+        with Tempdir() as td:
+            tf = os.path.join(td, "ccbuild.py")
             self.write_setup(tf)
             cmd = [self.interpreter, tf, pyf]
             _so = self.call(cmd, out=True, shell=False,
-                            msg=pyf, c=self.cc, tmdir=td)
+                            msg=pyf, c=self.cc)
             if _so:
                 new_file_name = pyf[:-3] + ".so"
                 shutil.move(_so, new_file_name)
@@ -84,14 +83,13 @@ class CompileProject(object):
             self.list_compile_files()
         nproc = min(self.threads, len(self.compile_file))
         if nproc > 1:
-            p = mp.Pool()
-            p.map(self, self.compile_file)
+            with ProcessPoolExecutor(nproc) as p:
+                p.map(self, self.compile_file)
         else:
             self.compile(self.compile_file[0])
-        self.clean_tmp()
         self.clean_source()
 
-    def call(self, cmd, out=False, shell=True, msg="", c=False, tmdir=None):
+    def call(self, cmd, out=False, shell=True, msg="", c=False):
         if not out:
             with open(os.devnull, "w") as fo:
                 subprocess.check_call(cmd, shell=shell, stdout=fo, stderr=fo)
@@ -104,8 +102,6 @@ class CompileProject(object):
                 raise RuntimeError()
         except Exception:
             self.logger.debug(e.decode())
-            if tmdir and os.path.isdir(tmdir):
-                shutil.rmtree(tmdir)
             if msg:
                 self.logger.error("compile error %s" % msg)
             if not c:
@@ -115,13 +111,13 @@ class CompileProject(object):
         return dotso[0]
 
     def safe_exit(self):
-        self.clean_tmp()
         self.clean_source()
+        self.clean_tmp()
         clean_process()
 
     @staticmethod
     def clean_tmp():
-        td = os.path.join(tempfile.gettempdir(), "*", "ccbuild_%s" % getGID())
+        td = os.path.join(tempfile.gettempdir(), "*", "ccbuild.py")
         for c in glob.glob(td):
             if os.path.isdir(os.path.dirname(c)):
                 shutil.rmtree(os.path.dirname(c))

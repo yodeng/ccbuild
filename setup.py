@@ -78,7 +78,7 @@ class Packages(object):
             url="https://github.com/yodeng/%s" % self.name,
             package_dir={self.name: os.path.basename(self.source_dir)},
             install_requires=self.requirements,
-            python_requires='>=2.7, <=3.10',
+            python_requires='>=3.5',
             long_description=self.description,
             long_description_content_type='text/markdown',
             entry_points={'console_scripts': self._entrys},

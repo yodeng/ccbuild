@@ -9,7 +9,7 @@
 #### 依赖
 
 + Linux
-+ Python >=2.7.10, <=3.10
++ Python >=3.5
 + cython
 
 

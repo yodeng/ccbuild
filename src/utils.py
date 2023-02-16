@@ -6,6 +6,7 @@ import re
 import sys
 import time
 import shutil
+import weakref
 import logging
 import argparse
 import tempfile
@@ -16,70 +17,50 @@ import subprocess
 import multiprocessing as mp
 
 from setuptools import setup
+from concurrent.futures import ProcessPoolExecutor
 
-from types import MethodType
 from Cython.Build import cythonize
 
 from ._version import __version__
-
-PY = sys.version_info
-
-if PY.major == 2:
-    from copy_reg import pickle
-elif PY.major == 3:
-    from copyreg import pickle
-
-
-class WorkerStopException(Exception):
-    pass
-
-
-def getGID():
-    p = os.getpid()
-    return os.getpgid(p)
-
-
-def clean_process(ret_code=15):
-    os.killpg(getGID(), ret_code)
-
-
-def pickle_method(method):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
-    return unpickle_method, (func_name, obj, cls)
-
-
-def unpickle_method(func_name, obj, cls):
-    for cls in cls.mro():
-        try:
-            func = cls.__dict__[func_name]
-        except KeyError:
-            pass
-        else:
-            break
-    return func.__get__(obj, cls)
 
 
 def text_wrap(text):
     return textwrap.dedent(text).strip()
 
 
-@contextlib.contextmanager
-def tempdir(*args, **kwargs):
-    tmpdir = tempfile.mkdtemp(*args, **kwargs)
-    try:
-        yield tmpdir
-    finally:
-        try:
-            shutil.rmtree(tmpdir)
-        except:
-            pass
+class Tempdir(object):
+
+    def __init__(self, suffix=None, prefix=None, dir=None, persistent=False):
+        self.persistent = persistent
+        self.name = tempfile.mkdtemp(suffix, prefix, dir)
+        self._finalizer = weakref.finalize(
+            self, self._cleanup, self.name)
+
+    def _cleanup(self, name):
+        if not self.persistent:
+            shutil.rmtree(name)
+
+    def __repr__(self):
+        return "<{} {!r}>".format(self.__class__.__name__, self.name)
+
+    def __enter__(self):
+        return self.name
+
+    def __exit__(self, exc, value, tb):
+        self.cleanup()
+
+    def cleanup(self):
+        if self._finalizer.detach():
+            shutil.rmtree(self.name)
 
 
 def mkdir(path):
     if not os.path.isdir(path):
         os.makedirs(path)
+
+
+def clean_process(ret_code=15):
+    os.killpg(os.getpgid(os.getpid()), ret_code)
 
 
 def copy_to_dir(src, dst):
