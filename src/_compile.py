@@ -38,10 +38,7 @@ class CompileProject(object):
                     self.remove_src = False
             return
         elif os.path.isdir(self.pdir):
-            mkdir(self.cdir)
-            if os.path.abspath(self.pdir) != os.path.abspath(self.cdir):
-                cpcmd = "cp -r %s/* %s" % (self.pdir, self.cdir)
-                self.call(cpcmd)
+            copy_to_dir(self.pdir, self.cdir)
         for p, ds, fs in os.walk(self.cdir):
             dn = os.path.basename(p)
             for dp in self.edir:
@@ -82,11 +79,14 @@ class CompileProject(object):
         if len(self.compile_file) == 0:
             self.list_compile_files()
         nproc = min(self.threads, len(self.compile_file))
-        if nproc > 1:
-            with ProcessPoolExecutor(nproc) as p:
-                p.map(self, self.compile_file)
-        else:
-            self.compile(self.compile_file[0])
+        try:
+            if nproc > 1:
+                with ProcessPoolExecutor(nproc) as p:
+                    p.map(self, self.compile_file)
+            else:
+                self.compile(self.compile_file[0])
+        except:
+            self.safe_exit()
         self.clean_source()
 
     def call(self, cmd, out=False, shell=True, msg="", c=False):
@@ -100,27 +100,30 @@ class CompileProject(object):
             out, e = p.communicate()
             if p.returncode != 0:
                 raise RuntimeError()
-        except Exception:
-            self.logger.debug(e.decode())
+        except (BaseException, KeyboardInterrupt) as e:
+            self.logger.debug(e)
             if msg:
                 self.logger.error("compile error %s" % msg)
-            if not c:
-                self.safe_exit()
+            self.safe_exit()
             return
         dotso = re.findall(" \-o (.+\.so)\n", out.decode())
         return dotso[0]
 
     def safe_exit(self):
-        self.clean_source()
-        self.clean_tmp()
-        clean_process()
+        if not self.cc:
+            self.clean_source()
+            self.clean_tmp()
+            sys.exit(1)
 
     @staticmethod
     def clean_tmp():
         td = os.path.join(tempfile.gettempdir(), "*", "ccbuild.py")
         for c in glob.glob(td):
             if os.path.isdir(os.path.dirname(c)):
-                shutil.rmtree(os.path.dirname(c))
+                try:
+                    shutil.rmtree(os.path.dirname(c))
+                except:
+                    pass
 
     def clean_source(self):
         for p, ds, fs in os.walk(self.cdir):

@@ -51,16 +51,15 @@ class Tempdir(object):
 
     def cleanup(self):
         if self._finalizer.detach():
-            shutil.rmtree(self.name)
+            try:
+                shutil.rmtree(self.name)
+            except:
+                pass
 
 
 def mkdir(path):
     if not os.path.isdir(path):
         os.makedirs(path)
-
-
-def clean_process(ret_code=15):
-    os.killpg(os.getpgid(os.getpid()), ret_code)
 
 
 def copy_to_dir(src, dst):
@@ -71,6 +70,8 @@ def copy_to_dir(src, dst):
         return
     for p in os.listdir(src):
         path = os.path.join(src, p)
+        if path == os.path.abspath(dst):
+            continue
         if os.path.isfile(path):
             shutil.copyfile(path, os.path.join(dst, p))
         elif os.path.isdir(path):
