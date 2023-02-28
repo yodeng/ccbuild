@@ -7,7 +7,7 @@ from ._compile import *
 
 def main():
     args = Argparse()
-    log = Mylog(multi=True)
+    log = Mylog()
     if args.debug:
         log.setLevel(10)
     if not check_cython(args.python):

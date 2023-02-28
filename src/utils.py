@@ -88,11 +88,8 @@ def check_cython(python_exe):
     return False
 
 
-def Mylog(logfile=None, multi=False, level="info"):
-    if multi:
-        logger = mp.get_logger()
-    else:
-        logger = logging.getLogger()
+def Mylog(logfile=None, level="info"):
+    logger = logging.getLogger()
     if level.lower() == "info":
         logger.setLevel(logging.INFO)
         f = logging.Formatter(
@@ -102,7 +99,7 @@ def Mylog(logfile=None, multi=False, level="info"):
         f = logging.Formatter(
             '[%(levelname)s %(threadName)s %(asctime)s %(funcName)s(%(lineno)d)] %(message)s')
     if logfile is None:
-        h = logging.StreamHandler(sys.stdout)  # default: sys.stderr
+        h = logging.StreamHandler()
     else:
         h = logging.FileHandler(logfile, mode='w')
     h.setFormatter(f)

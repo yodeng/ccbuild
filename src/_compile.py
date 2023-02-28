@@ -100,8 +100,8 @@ class CompileProject(object):
             out, e = p.communicate()
             if p.returncode != 0:
                 raise RuntimeError()
-        except (BaseException, KeyboardInterrupt) as e:
-            self.logger.debug(e)
+        except (BaseException, KeyboardInterrupt) as err:
+            self.logger.debug(e.decode())
             if msg:
                 self.logger.error("compile error %s" % msg)
             self.safe_exit()
@@ -173,4 +173,4 @@ class CompileProject(object):
 
     @property
     def logger(self):
-        return mp.get_logger()
+        return logging.getLogger()
