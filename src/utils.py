@@ -79,13 +79,12 @@ def copy_to_dir(src, dst):
 
 
 def check_cython(python_exe):
-    proc = subprocess.Popen([python_exe, "-m", "cython"],
+    proc = subprocess.Popen([python_exe, "-c", "'import cython'"],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = proc.communicate()
-    out = stdout+stderr
-    if "--version" in out.decode():
-        return True
-    return False
+    if proc.returncode != 0:
+        return False
+    return True
 
 
 def Mylog(logfile=None, level="info"):
